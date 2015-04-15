@@ -1,19 +1,18 @@
 Add monitoring MIB-PDU (Nagios->ngsi_adapter->ContextBroker)
-_____________________________________________________________
-
+=============================================================
 
 Adapter and actions to perform in order to monitoring power-usage from Nagios probes (ny snmp) to NGSI context
 attributes, and forward them through a NGSI Context Broker.
 
 Introduction
-============
+------------
 
 The repository is composed by two files:
 - `check_power` (a bash script)
 - `check_power.js` (the ngsi_adapter ad-hoc script)
 
 Installation
-============
+------------
 
 - Downolad the repository
 - Copy the check_power bash script under the proper nagios path (i.e. `/usr/local/nagios/libexec`)
