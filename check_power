@@ -1,0 +1,129 @@
+#!/bin/bash
+#
+# evaluate free system memory from Linux based systems
+#
+# Date: 2007-11-12
+# Author: Thomas Borger - ESG
+#
+# the memory check is done with following command line:
+# free -m | grep buffers/cache | awk '{ print $4 }'
+
+# get arguments
+
+int_warn=0
+int_crit=0
+
+while getopts 'a:b:x:y:w:c:h' OPT; do
+  case $OPT in
+    a) h1=$OPTARG;;
+    b) o1=$OPTARG;;
+    x) h2=$OPTARG;;
+    y) o2=$OPTARG;;
+    w)  int_warn=$OPTARG;;
+    c)  int_crit=$OPTARG;;
+    h)  hlp="yes";;
+    *)  unknown="yes";;
+  esac
+done
+
+# usage
+HELP="
+    usage: $0 [ -h1 host_address -o1 oid1 -h2 host_address -o2 oid2 -w value -c value -p -h ]
+
+    syntax:
+
+            -w --> Warning integer value
+            -c --> Critical integer value
+            -h --> print this help screen
+"
+
+if [ "$hlp" = "yes" -o $# -lt 1 ]; then
+  echo "$HELP"
+  exit 0
+fi
+
+# get the aggregate power max 2 PLUGs
+pw1=0
+pw2=0
+
+if [ ! -z "$h1" -a ! -z "$o1" ];then
+  pw1=`/usr/local/nagios/libexec/check_snmp -H "$h1" -o "$o1" -w 360 -c :380 | cut -d "=" -f 2`
+else
+  pw1=0
+fi
+
+
+if [ ! -z "$h2" -a ! -z "$o2" ];then
+  pw2=`/usr/local/nagios/libexec/check_snmp -H "$h2" -o "$o2" -w 360 -c :380 | cut -d "=" -f 2`
+else
+  pw2=0
+fi
+
+pwTot=`expr $pw1 + $pw2`
+
+# output with or without performance data
+if [ "$perform" = "yes" ]; then
+  OUTPUTP="total power[W] - $pwTot"
+else
+  OUTPUT="total power [W] - $pwTot"
+fi
+
+if [ -n "$int_warn" -a -n "$int_crit" ]; then
+
+  err=0
+  if (( "$int_warn" == 0 | "$int_crit" == 0)); then 
+    err=3
+  elif (( $pwTot <= $int_crit )); then
+    err=1
+  elif (( $pwTot <= $int_warn )); then
+    err=2
+  fi
+
+  if (( $err == 0 )); then
+
+    if [ "$perform" = "yes" ]; then
+      echo -n "SNMP OK $OUTPUT"
+      exit "$err"
+    else
+      echo -n "SNMP OK $OUTPUT"
+      exit "$err"
+    fi
+
+  elif (( $err == 1 )); then
+    if [ "$perform" = "yes" ]; then
+      echo -n "SNMP WARNING $OUTPUT"
+      exit "$err"
+    else
+      echo -n "SNMP WARNING $OUTPUT"
+      exit "$err"
+    fi
+
+  elif (( $err == 2 )); then
+    
+    if [ "$perform" = "yes" ]; then
+      echo -n "SNMP CRITICAL $OUTPUT"
+      exit "$err"
+    else
+      echo -n "SNMP CRITICAL $OUTPUT"
+      exit "$err"
+    fi
+
+  elif (( $err == 3 )); then
+
+    if [ "$perform" = "yes" ]; then
+      echo -n "SNMP OK $OUTPUT"
+      exit "$err"
+    else
+      echo -n "SNMP OK $OUTPUT"
+      exit 0
+    fi
+
+  fi
+  
+else
+  
+  echo -n "no output from plugin"
+  exit 3
+
+fi
+exit 
